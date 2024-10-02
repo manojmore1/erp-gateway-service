@@ -1,5 +1,7 @@
 package x.erp.controller;
 //import org.springframework.security.access.prepost.PreAuthorize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,16 +13,24 @@ import x.erp.model.AuthRequest;
 import x.erp.model.AuthResponse;
 import x.erp.model.User;
 import x.erp.security.JWTUtil;
+import x.erp.security.TokenBlacklistService;
 import x.erp.security.UserService;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     @Autowired
     private JWTUtil jwtUtil;
 
+    private final TokenBlacklistService tokenBlacklistService;
+
     @Autowired
     private UserService userService;
+
+    public AuthController(TokenBlacklistService tokenBlacklistService) {
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     @GetMapping("/welcome")
     public String welcome() {
@@ -44,7 +54,9 @@ public class AuthController {
         return userService.findByUsername(authRequest.getUsername())
                 .map(userDetails -> {
                     if (userDetails.getPassword().equals(authRequest.getPassword())) {
-                        return ResponseEntity.ok(new AuthResponse(jwtUtil.generateToken(authRequest.getUsername())));
+                        String token = jwtUtil.generateToken(authRequest.getUsername());
+                        log.info("=========TOKEN: {}", token);
+                        return ResponseEntity.ok(new AuthResponse(token));
                     } else {
                         throw new BadCredentialsException("Invalid username or password");
                     }
@@ -61,5 +73,14 @@ public class AuthController {
     @GetMapping("/protected")
     public Mono<ResponseEntity<String>> protectedEndpoint() {
         return Mono.just(ResponseEntity.ok("You have accessed a protected endpoint!"));
+    }
+
+    @PostMapping("/auth/logout")
+    public Mono<Void> logout(@RequestHeader("Authorization") String token) {
+        // Extract token value if it contains "Bearer " prefix
+        String actualToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+        // Blacklist the token
+        return tokenBlacklistService.blacklistToken(actualToken);
     }
 }

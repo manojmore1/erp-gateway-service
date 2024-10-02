@@ -17,7 +17,7 @@ public class ErpGatewayServiceApplication {
 	@Bean
 	public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
 		return builder.routes()
-				.route("service1_route", r -> r.path("/api/**")
+				.route("service1_route", r -> r.path("/api/**","/erp/**", "/page/**")
 						.uri("http://localhost:8080"))
 				.route("service2_route", r -> r.path("/service2/**")
 						.filters(f -> f.stripPrefix(1))

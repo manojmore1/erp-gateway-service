@@ -23,20 +23,27 @@ public class JWTAuthenticationManager implements ReactiveAuthenticationManager {
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) throws AuthenticationException {
-        String token = authentication.getCredentials().toString();
-        String username = jwtUtil.extractUsername(token);
+        try {
+            String token = authentication.getCredentials().toString();
 
-        return userService.findByUsername(username)
-                .map(userDetails -> {
-                    if (jwtUtil.validateToken(token, userDetails.getUsername())) {
-                        return new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities() // Pass the user's authorities
-                        );
+            String username = jwtUtil.extractUsername(token);
 
-                    } else {
-                        throw new AuthenticationException("Invalid JWT token") {};
-                    }
-                });
+            return userService.findByUsername(username)
+                    .map(userDetails -> {
+                        if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                            return new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities() // Pass the user's authorities
+                            );
+
+                        } else {
+                            throw new AuthenticationException("Invalid JWT token") {
+                            };
+
+                        }
+                    });
+        } catch (Exception e) {
+            return Mono.error(new AuthenticationException("testing"){});
+        }
     }
 
     public ServerAuthenticationConverter authenticationConverter() {

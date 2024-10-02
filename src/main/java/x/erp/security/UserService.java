@@ -16,7 +16,7 @@ public class UserService implements ReactiveUserDetailsService {
     public Mono<UserDetails> findByUsername(String username) {
 //        return userRepository.findByUsername(username);
         User user = new User();
-        user.setPassword("password1");
+        user.setPassword("p");
         user.setUsername(username);
         return Mono.just(user);
     }

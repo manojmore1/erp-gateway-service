@@ -12,6 +12,8 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import x.erp.security.*;
+import x.erp.security.exception.AuthenticationExceptionHandler;
+import x.erp.security.exception.CustomAccessDeniedHandler;
 
 
 @Configuration
@@ -23,18 +25,26 @@ public class SecurityConfig {
     @Autowired
     JWTUtil jwtUtil;
 
+    @Autowired
+    private AuthenticationExceptionHandler authenticationExceptionHandler;
+
+    private final TokenBlacklistService tokenBlacklistService;
+
+    @Autowired
+    private CustomAccessDeniedHandler accessDeniedHandler;
+
     public static final String[] PERMITTED_URL = new String[]{
-            "/auth/welcome",
-            "api/organizations",
+            "/page/**",
+            "/signup",
             "/actuator/**",
-            "/auth/login",
-            "/auth/signup"
+            "/auth/**"
     };
 
     private final JWTAuthenticationManager authenticationManager;
 
-    public SecurityConfig(JWTAuthenticationManager authenticationManager) {
+    public SecurityConfig(JWTAuthenticationManager authenticationManager, TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
 //    @Bean
@@ -49,13 +59,13 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
 
         // Disabling CSRF as WebFlux API's typically do not use sessions or cookies
-        return http.securityContextRepository(new JWTBasedSecurityContextRepository(authenticationManager, jwtUtil))
+        return http.securityContextRepository(new JWTBasedSecurityContextRepository(authenticationManager, jwtUtil, tokenBlacklistService))
                 .authenticationManager(authenticationManager)
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/auth/protected")
-                        .authenticated()
-                        .anyExchange()
-                        .permitAll()
+                        .pathMatchers(PERMITTED_URL).permitAll().anyExchange().authenticated()
+                ).exceptionHandling(exceptionHandlingSpec -> exceptionHandlingSpec
+                        .authenticationEntryPoint(authenticationExceptionHandler)  // Custom AuthenticationEntryPoint
+                        .accessDeniedHandler(accessDeniedHandler)  // Custom AccessDeniedHandler
                 )
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .build();
