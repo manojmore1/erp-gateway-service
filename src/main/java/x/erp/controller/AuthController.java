@@ -75,7 +75,7 @@ public class AuthController {
         return Mono.just(ResponseEntity.ok("You have accessed a protected endpoint!"));
     }
 
-    @PostMapping("/auth/logout")
+    @PostMapping("/logout")
     public Mono<Void> logout(@RequestHeader("Authorization") String token) {
         // Extract token value if it contains "Bearer " prefix
         String actualToken = token.startsWith("Bearer ") ? token.substring(7) : token;

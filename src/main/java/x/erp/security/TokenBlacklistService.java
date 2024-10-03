@@ -18,6 +18,7 @@ public class TokenBlacklistService {
 
     public Mono<Boolean> isTokenBlacklisted(String token) {
         return Mono.just(blacklistedTokens.contains(token));
+//        return Mono.just(true);
     }
 }
 
