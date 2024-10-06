@@ -2,6 +2,7 @@ package x.erp.security;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
@@ -13,6 +14,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 
 public class JWTBasedSecurityContextRepository implements ServerSecurityContextRepository {
@@ -38,12 +42,17 @@ public class JWTBasedSecurityContextRepository implements ServerSecurityContextR
     @Override
     public Mono<SecurityContext> load(ServerWebExchange exchange) {
         // Extract the Authorization header
-        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String headerAuthToken = exchange.getRequest().getHeaders().getFirst("Authorization");
+        HttpCookie httpCookie = exchange.getRequest().getCookies().getFirst("Authorization");
+        String cookieAuthToken = Objects.nonNull(httpCookie)? httpCookie.getValue() : null;
+        String authHeader = Objects.isNull(headerAuthToken)? cookieAuthToken : headerAuthToken;
+
         log.info("======authHeader: {}", authHeader);
         Mono<SecurityContext> securityContext = null;
 
         // Check if the header contains a Bearer token
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.startsWith("Bearer")) {
+            authHeader = URLDecoder.decode(authHeader, StandardCharsets.UTF_8);
             String token = authHeader.substring(7);
             log.info("====Received TOKEN: {}", token);
             securityContext = tokenBlacklistService.isTokenBlacklisted(token).flatMap(isBlackListed -> {
