@@ -30,6 +30,10 @@ public class SecurityConfig {
 
     private final TokenBlacklistService tokenBlacklistService;
 
+    private final CustomLogoutHandler customLogoutHandler;
+
+    private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+
     @Autowired
     private CustomAccessDeniedHandler accessDeniedHandler;
 
@@ -42,9 +46,12 @@ public class SecurityConfig {
 
     private final JWTAuthenticationManager authenticationManager;
 
-    public SecurityConfig(JWTAuthenticationManager authenticationManager, TokenBlacklistService tokenBlacklistService) {
+    public SecurityConfig(JWTAuthenticationManager authenticationManager, TokenBlacklistService tokenBlacklistService,
+                          CustomLogoutHandler customLogoutHandler, CustomLogoutSuccessHandler customLogoutSuccessHandler) {
         this.authenticationManager = authenticationManager;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.customLogoutHandler = customLogoutHandler;
+        this.customLogoutSuccessHandler = customLogoutSuccessHandler;
     }
 
 //    @Bean
@@ -66,7 +73,11 @@ public class SecurityConfig {
                 ).exceptionHandling(exceptionHandlingSpec -> exceptionHandlingSpec
                         .authenticationEntryPoint(authenticationExceptionHandler)  // Custom AuthenticationEntryPoint
                         .accessDeniedHandler(accessDeniedHandler)  // Custom AccessDeniedHandler
-                )
+                ).logout(logout -> {
+                    logout.logoutUrl("/auth/logout");
+                    logout.logoutHandler(customLogoutHandler);
+                    logout.logoutSuccessHandler(customLogoutSuccessHandler);
+                })
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .build();
     }

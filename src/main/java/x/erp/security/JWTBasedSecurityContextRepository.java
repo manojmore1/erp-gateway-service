@@ -57,7 +57,8 @@ public class JWTBasedSecurityContextRepository implements ServerSecurityContextR
             log.info("====Received TOKEN: {}", token);
             securityContext = tokenBlacklistService.isTokenBlacklisted(token).flatMap(isBlackListed -> {
                 if(isBlackListed) {
-                    return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token Expired by Logout"));
+
+                    return Mono.error(new AuthenticationException("User already logged out"){});
                 }
                 // Validate the token and authenticate the user
                 Authentication auth = new UsernamePasswordAuthenticationToken(token, token);
